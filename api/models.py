@@ -1,9 +1,10 @@
 from django.db import models
 
 # Create your models here.
-class Task(models.Model):
+class Books(models.Model):
+    bookId = models.CharField(max_length=50,primary_key=True)
     title = models.CharField(max_length=200)
-    complete = models.BooleanField(default=False, blank=True, null=True)
+    description = models.TextField()
 
     def __str__(self) -> str:
-        return self.title
+        return self.bookId

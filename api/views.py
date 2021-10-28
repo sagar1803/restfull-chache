@@ -1,58 +1,42 @@
 from django.shortcuts import render
 from django.http import JsonResponse
+from rest_framework import exceptions
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from . serializer import TaskSerializer
-from . models import Task
+from . serializer import BookSerializer
+from . models import Books
+
+from services.service_layer import get_books_from_third_party
+
+import logging
+
 
 # Create your views here.
-@api_view(['GET'])
-def apiOverview(request):
+logger = logging.getLogger(__name__)
 
-    api_urls = {
-        'List':'/task-list/',
-        'Detail View':'/task-detail/<str:pk>/',
-        'Create': '/task-create/',
-        'Update':'/task-update/<str:pk/',
-        'Delete':'/task-delete/<str:pk/'
-    }
-
-    return Response(api_urls)
 
 @api_view(['GET'])
-def get_all_task(request):
-    task = Task.objects.all()
-    serializer = TaskSerializer(task, many=True)
-    return Response(serializer.data)
+def get_book_by_matching_name(request, keyword):
+    try:
+        check_book = Books.objects.filter(title__icontains = keyword).exists()
+        if check_book:
+            book = Books.objects.filter(title__icontains = keyword)
+            serializer = BookSerializer(book, many=True)
+            print("Data present in db")
+            return Response(serializer.data)
+        else:
+            print("Fetch the data from third part api")
+            get_data = get_books_from_third_party(keyword)
+            if get_data['status_code'] == 200:
+                book = Books(bookId = get_data['book']['bookId'], title = get_data['book']['title'], description = get_data['book']['description'])
+                book.save()
+            return Response(get_data,status = get_data['status_code'])
+    except exceptions as e:
+        print(str(e))
+        logging(e)
+        return Response(str(e), "500 Internal Server Error")
+        
 
-@api_view(['GET'])
-def get_task_by_id(request, id):
-    task = Task.objects.get(id= id)
-    serializer = TaskSerializer(task, many=False)
-    return Response(serializer.data)
 
-@api_view(['POST'])
-def create_task(request):
-    serializer = TaskSerializer(data = request.data)
-    if serializer.is_valid():
-        serializer.save()
-
-    return Response(serializer.data)
-
-
-@api_view(['PUT'])
-def update_task_by_id(request, id):
-    task = Task.objects.get(id = id)
-    serializer = TaskSerializer(instance = task ,data = request.data)
-    if serializer.is_valid():
-        serializer.save()
-
-    return Response(serializer.data)
-
-@api_view(['DELETE'])
-def delete_task(request,id):
-    task = Task.objects.get(id = id)
-    task.delete()
-    return Response("Item deleted successfully")
