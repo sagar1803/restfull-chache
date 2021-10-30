@@ -12,6 +12,8 @@ from services.service_layer import get_books_from_third_party
 
 import logging
 
+from constant import HTTP_CODES, HTTP_ERROR_MESSAGE
+
 
 # Create your views here.
 logger = logging.getLogger(__name__)
@@ -29,14 +31,14 @@ def get_book_by_matching_name(request, keyword):
         else:
             print("Fetch the data from third part api")
             get_data = get_books_from_third_party(keyword)
-            if get_data['status_code'] == 200:
+            if get_data['status_code'] == HTTP_CODES.OK.value:
                 book = Books(bookId = get_data['book']['bookId'], title = get_data['book']['title'], description = get_data['book']['description'])
                 book.save()
             return Response(get_data,status = get_data['status_code'])
     except exceptions as e:
         print(str(e))
         logging(e)
-        return Response(str(e), "500 Internal Server Error")
+        return Response(str(e), HTTP_ERROR_MESSAGE[HTTP_CODES.GENERIC_RESPONSE_ERROR.value])
         
 
 
